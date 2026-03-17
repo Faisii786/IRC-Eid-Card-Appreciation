@@ -12,7 +12,9 @@ export async function GET(
     return NextResponse.json({ error: "Card not found or expired" }, { status: 404 });
   }
 
-  return new NextResponse(imageBuffer, {
+  const responseBody = Uint8Array.from(imageBuffer);
+
+  return new NextResponse(responseBody, {
     status: 200,
     headers: {
       "Content-Type": "image/png",
