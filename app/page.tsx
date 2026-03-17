@@ -1,10 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 
 type Lang = "ar" | "en";
+type LoadingStage = "idle" | "generating" | "translating" | "rendering";
+const NAME_REGEX = /^[A-Za-z\u0600-\u06FF\s'-]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_NAME_LENGTH = 2;
+const MAX_NAME_LENGTH = 60;
 
 const t = {
   ar: {
@@ -12,8 +17,12 @@ const t = {
     subtitle: "بطاقة تهنئة عيد الفطر",
     nameLabel: "الاسم",
     namePlaceholder: "مثال: فيصل أسلم",
+    emailLabel: "البريد الإلكتروني",
+    emailPlaceholder: "مثال: name@example.com",
     submit: "إنشاء البطاقة",
-    generating: "جاري إنشاء البطاقة...",
+    generating: "جاري تجهيز الطلب...",
+    translating: "جاري ترجمة الاسم...",
+    rendering: "جاري تصميم البطاقة...",
     ready: "بطاقتك جاهزة!",
     appreciation: [
       "بمناسبة عيد الفطر السعيد، نتقدم إليكم بأحر التهاني.",
@@ -25,17 +34,30 @@ const t = {
     preview: "معاينة",
     close: "إغلاق",
     another: "إنشاء بطاقة أخرى",
+    copyLink: "نسخ الرابط",
+    copied: "تم نسخ الرابط",
+    share: "مشاركة",
     footer: "شركة الإستقدام الدولية • www.irc.sa",
     switchLang: "English",
     error: "حدث خطأ، يرجى المحاولة مرة أخرى.",
+    invalidName: "اكتب اسمًا صحيحًا (أحرف عربية/إنجليزية فقط).",
+    nameShort: "الاسم قصير جدًا.",
+    nameLong: "الاسم طويل جدًا.",
+    emailRequired: "البريد الإلكتروني مطلوب.",
+    invalidEmail: "صيغة البريد الإلكتروني غير صحيحة.",
+    botField: "اترك هذا الحقل فارغًا",
   },
   en: {
     title: "Eid Mubarak",
     subtitle: "Eid Al-Fitr Greeting Card",
     nameLabel: "Your Name",
     namePlaceholder: "e.g. Faisal Aslam",
+    emailLabel: "Email",
+    emailPlaceholder: "e.g. name@example.com",
     submit: "Generate Eid Card",
-    generating: "Generating your card...",
+    generating: "Preparing your request...",
+    translating: "Translating your name...",
+    rendering: "Rendering your card...",
     ready: "Your personalized Eid card is ready!",
     appreciation: [
       "On the joyful occasion of Eid Al-Fitr, we extend our warmest wishes to you.",
@@ -47,37 +69,109 @@ const t = {
     preview: "Preview",
     close: "Close",
     another: "Make Another",
+    copyLink: "Copy Link",
+    copied: "Link copied",
+    share: "Share",
     footer: "International Recruitment Company • www.irc.sa",
     switchLang: "العربية",
     error: "Something went wrong. Please try again.",
+    invalidName: "Enter a valid name (Arabic/English letters only).",
+    nameShort: "Name is too short.",
+    nameLong: "Name is too long.",
+    emailRequired: "Email is required.",
+    invalidEmail: "Email format is invalid.",
+    botField: "Leave this field empty",
   },
 };
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("ar");
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [result, setResult] = useState<{
-    image: string;
+    imageUrl: string;
     arabicName: string;
   } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [error, setError] = useState("");
+  const [website, setWebsite] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const l = t[lang];
   const isRtl = lang === "ar";
+  const normalizedName = useMemo(() => name.replace(/\s+/g, " ").trim(), [name]);
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const nameLength = normalizedName.length;
+  const isNameValid =
+    nameLength >= MIN_NAME_LENGTH &&
+    nameLength <= MAX_NAME_LENGTH &&
+    NAME_REGEX.test(normalizedName);
+  const isEmailValid = EMAIL_REGEX.test(normalizedEmail);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("eid-card-lang");
+    if (saved === "en" || saved === "ar") {
+      setLang(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("eid-card-lang", lang);
+  }, [lang]);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewOpen]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setCopied(false);
+    if (!normalizedName) {
+      setError(l.nameShort);
+      return;
+    }
+    if (normalizedName.length < MIN_NAME_LENGTH) {
+      setError(l.nameShort);
+      return;
+    }
+    if (normalizedName.length > MAX_NAME_LENGTH) {
+      setError(l.nameLong);
+      return;
+    }
+    if (!NAME_REGEX.test(normalizedName)) {
+      setError(l.invalidName);
+      return;
+    }
+    if (!normalizedEmail) {
+      setError(l.emailRequired);
+      return;
+    }
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      setError(l.invalidEmail);
+      return;
+    }
     setLoading(true);
+    setLoadingStage("generating");
     setError("");
     setResult(null);
+    const stageTimeout = window.setTimeout(() => {
+      setLoadingStage("translating");
+    }, 350);
 
     try {
       const res = await fetch("/api/generate-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, lang }),
+        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, lang, website }),
       });
 
       const data = await res.json();
@@ -87,17 +181,22 @@ export default function Home() {
         return;
       }
 
+      setLoadingStage("rendering");
+      await new Promise((resolve) => setTimeout(resolve, 120));
       setResult(data);
     } catch {
       setError(l.error);
     } finally {
+      clearTimeout(stageTimeout);
       setLoading(false);
+      setLoadingStage("idle");
     }
   }
 
-  async function convertImageFormat(dataUrl: string, mimeType: string, quality?: number) {
+  async function convertImageFormat(imageBlob: Blob, mimeType: string, quality?: number) {
     const img = new Image();
-    img.src = dataUrl;
+    const objectUrl = URL.createObjectURL(imageBlob);
+    img.src = objectUrl;
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
       img.onerror = () => reject(new Error("Image conversion failed"));
@@ -113,18 +212,48 @@ export default function Home() {
     }
 
     ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(objectUrl);
     return canvas.toDataURL(mimeType, quality);
   }
 
+  async function fetchCardBlob(): Promise<Blob> {
+    if (!result?.imageUrl) {
+      throw new Error("Image unavailable");
+    }
+    const imageRes = await fetch(result.imageUrl);
+    if (!imageRes.ok) {
+      throw new Error("Image fetch failed");
+    }
+    return imageRes.blob();
+  }
+
+  async function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result !== "string") {
+          reject(new Error("Failed to convert image"));
+          return;
+        }
+        resolve(reader.result);
+      };
+      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
   async function handleDownload(format: "gallery" | "pdf") {
-    if (!result?.image) return;
+    if (!result?.imageUrl) return;
     try {
-      const fileBase = `eid-card-${name.trim().replace(/\s+/g, "-") || "name"}`;
-      let href = result.image;
+      const safeName = normalizedName.replace(/[^A-Za-z0-9\u0600-\u06FF-]+/g, "-");
+      const fileBase = `eid-card-${safeName || "name"}`;
+      const originalBlob = await fetchCardBlob();
+      const fallbackPngUrl = URL.createObjectURL(originalBlob);
+      let href = fallbackPngUrl;
       let extension = "png";
 
       if (format === "gallery") {
-        href = await convertImageFormat(result.image, "image/jpeg", 0.95);
+        href = await convertImageFormat(originalBlob, "image/jpeg", 0.95);
         extension = "jpg";
       } else if (format === "pdf") {
         const pdf = new jsPDF({
@@ -136,8 +265,9 @@ export default function Home() {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
 
+        const imageDataUrl = await blobToDataUrl(originalBlob);
         const img = new Image();
-        img.src = result.image;
+        img.src = imageDataUrl;
         await new Promise<void>((resolve, reject) => {
           img.onload = () => resolve();
           img.onerror = () => reject(new Error("PDF image load failed"));
@@ -149,8 +279,9 @@ export default function Home() {
         const x = (pageWidth - renderWidth) / 2;
         const y = (pageHeight - renderHeight) / 2;
 
-        pdf.addImage(result.image, "PNG", x, y, renderWidth, renderHeight);
+        pdf.addImage(imageDataUrl, "PNG", x, y, renderWidth, renderHeight);
         pdf.save(`${fileBase}.pdf`);
+        URL.revokeObjectURL(fallbackPngUrl);
         return;
       }
 
@@ -158,8 +289,38 @@ export default function Home() {
       link.href = href;
       link.download = `${fileBase}.${extension}`;
       link.click();
+      URL.revokeObjectURL(fallbackPngUrl);
     } catch {
       setError(l.error);
+    }
+  }
+
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError(l.error);
+    }
+  }
+
+  async function handleShare() {
+    if (!result?.imageUrl) return;
+    try {
+      const imageBlob = await fetchCardBlob();
+      const file = new File([imageBlob], "eid-card.png", { type: imageBlob.type || "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: "Eid Card",
+          text: "My personalized Eid greeting card",
+          files: [file],
+        });
+      } else {
+        await handleCopyLink();
+      }
+    } catch {
+      // User may dismiss share dialog; avoid showing hard error.
     }
   }
 
@@ -209,115 +370,180 @@ export default function Home() {
 
           {/* Header */}
           <div className="text-center mb-5">
-          <h1 className="text-4xl font-bold text-blue-100 mb-1 tracking-wide">
-            {l.title}
-          </h1>
-          <p className="text-blue-200 text-base">{l.subtitle}</p>
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <span className="h-px w-12 bg-blue-200/50" />
-            <span className="text-blue-100 text-xl">✦</span>
-            <span className="h-px w-12 bg-blue-200/50" />
+            <h1 className="text-4xl font-bold text-blue-100 mb-1 tracking-wide">
+              {l.title}
+            </h1>
+            <p className="text-blue-200 text-base">{l.subtitle}</p>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="h-px w-12 bg-blue-200/50" />
+              <span className="text-blue-100 text-xl">✦</span>
+              <span className="h-px w-12 bg-blue-200/50" />
+            </div>
           </div>
-        </div>
 
-        {/* Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-          {!result ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-blue-200 mb-1.5"
-                >
-                  {l.nameLabel}
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={l.namePlaceholder}
-                  className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
-                />
-              </div>
-
-              {error && (
-                <div className="bg-blue-500/20 border border-blue-300/40 rounded-xl px-4 py-3 text-blue-100 text-sm">
-                  {error}
+          {/* Card */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+            {!result ? (
+              <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-blue-200 mb-1.5"
+                  >
+                    {l.nameLabel}
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    required
+                    autoComplete="off"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={l.namePlaceholder}
+                    maxLength={MAX_NAME_LENGTH}
+                    className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
+                  />
+                  <p className="mt-1 text-xs text-blue-100/90">
+                    {nameLength}/{MAX_NAME_LENGTH}
+                  </p>
+                  <div className="sr-only">
+                    <label htmlFor="website">{l.botField}</label>
+                    <input
+                      id="website"
+                      name="website"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                    />
+                  </div>
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    {l.generating}
-                  </span>
-                ) : (
-                  l.submit
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-blue-200 mb-1.5"
+                  >
+                    {l.emailLabel}
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    autoComplete="off"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={l.emailPlaceholder}
+                    className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                {error && (
+                  <div
+                    className="bg-blue-500/20 border border-blue-300/40 rounded-xl px-4 py-3 text-blue-50 text-sm"
+                    aria-live="polite"
+                  >
+                    {error}
+                  </div>
                 )}
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-blue-100 font-semibold mb-1">
-                  {result.arabicName}
-                </p>
-                <p className="text-blue-200 text-sm">{l.ready}</p>
-                <div className="mt-3 text-blue-100/90 text-sm leading-6 space-y-1">
-                  {l.appreciation.map((line) => (
-                    <p key={line}>{line}</p>
-                  ))}
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
-                  onClick={() => setPreviewOpen(true)}
+                  type="submit"
+                  disabled={loading || !isNameValid || !isEmailValid}
+                  className="w-full py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  aria-busy={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      {loadingStage === "rendering"
+                        ? l.rendering
+                        : loadingStage === "translating"
+                          ? l.translating
+                          : l.generating}
+                    </span>
+                  ) : (
+                    l.submit
+                  )}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-blue-100 font-semibold mb-1">
+                    {result.arabicName}
+                  </p>
+                  <p className="text-blue-200 text-sm">{l.ready}</p>
+                  <div className="mt-3 text-blue-100/90 text-sm leading-6 space-y-1">
+                    {l.appreciation.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setPreviewOpen(true)}
+                    className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  >
+                    {l.preview}
+                  </button>
+                  <button
+                    onClick={() => handleDownload("gallery")}
+                    className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
+                  >
+                    {l.downloadGallery}
+                  </button>
+                  <button
+                    onClick={() => handleDownload("pdf")}
+                    className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
+                  >
+                    {l.downloadPdf}
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  >
+                    {l.share}
+                  </button>
+                  <button
+                    onClick={handleCopyLink}
+                    className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  >
+                    {copied ? l.copied : l.copyLink}
+                  </button>
+                <button
+                  onClick={() => {
+                    setResult(null);
+                    setError("");
+                    setPreviewOpen(false);
+                  }}
                   className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
                 >
-                  {l.preview}
+                  {l.another}
                 </button>
-                <button
-                  onClick={() => handleDownload("gallery")}
-                  className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
-                >
-                  {l.downloadGallery}
-                </button>
-                <button
-                  onClick={() => handleDownload("pdf")}
-                  className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
-                >
-                  {l.downloadPdf}
-                </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
           {/* Footer */}
           <p className="text-center text-blue-300/40 text-xs mt-4">{l.footer}</p>
@@ -325,10 +551,13 @@ export default function Home() {
       </div>
 
       {/* Fullscreen preview */}
-      {previewOpen && result?.image && (
+      {previewOpen && result?.imageUrl && (
         <div
           className="fixed inset-0 z-50 bg-[#061a30]/90 flex flex-col items-center justify-center p-4"
           onClick={() => setPreviewOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={l.preview}
         >
           <button
             onClick={() => setPreviewOpen(false)}
@@ -338,7 +567,7 @@ export default function Home() {
             {l.close}
           </button>
           <img
-            src={result.image}
+            src={result.imageUrl}
             alt="Eid Card"
             className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}

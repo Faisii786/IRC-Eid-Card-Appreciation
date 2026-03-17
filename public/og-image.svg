@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#061a30" />
+      <stop offset="55%" stop-color="#0b2f52" />
+      <stop offset="100%" stop-color="#1b5f93" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grad)" />
+  <g fill="none" stroke="#8fb9df" stroke-opacity="0.2" stroke-width="2">
+    <circle cx="180" cy="120" r="60" />
+    <circle cx="1020" cy="520" r="40" />
+  </g>
+  <path fill="#b7d4ef" fill-opacity="0.85" d="M310 245a95 95 0 1 0 0 190 85 85 0 1 1 0-190z" />
+  <path fill="#f0e3a0" d="M400 255l9 19 21 2-16 14 5 20-19-10-19 10 5-20-16-14 21-2z" />
+  <text x="510" y="285" fill="#e8f4ff" font-family="Arial, sans-serif" font-size="56" font-weight="700">
+    Eid Mubarak
+  </text>
+  <text x="510" y="350" fill="#cbe2f7" font-family="Arial, sans-serif" font-size="34">
+    Personalized Appreciation Card Generator
+  </text>
+  <text x="510" y="410" fill="#cbe2f7" font-family="Arial, sans-serif" font-size="28">
+    International Recruitment Company
+  </text>
+</svg>
