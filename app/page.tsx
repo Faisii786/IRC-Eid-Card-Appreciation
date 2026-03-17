@@ -19,6 +19,8 @@ const t = {
     emailSent: "تم إرسال البطاقة إلى بريدك الإلكتروني.",
     emailNotConfigured: "البريد غير مُفعّل — يمكنك تحميل البطاقة أدناه.",
     download: "تحميل البطاقة",
+    preview: "معاينة",
+    close: "إغلاق",
     another: "إنشاء بطاقة أخرى",
     footer: "شركة الإستقدام الدولية • www.irc.sa",
     switchLang: "English",
@@ -37,6 +39,8 @@ const t = {
     emailSent: "Card has been sent to your email.",
     emailNotConfigured: "Email not configured — download your card below.",
     download: "Download Card",
+    preview: "Preview",
+    close: "Close",
     another: "Make Another",
     footer: "International Recruitment Company • www.irc.sa",
     switchLang: "العربية",
@@ -54,6 +58,7 @@ export default function Home() {
     arabicName: string;
     emailSent: boolean;
   } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [error, setError] = useState("");
 
   const l = t[lang];
@@ -127,10 +132,10 @@ export default function Home() {
         <span className="absolute bottom-1/3 left-20 text-amber-400/10 text-xl">✦</span>
       </div>
 
-      <div className="w-full max-w-2xl relative z-10">
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8">
+      <div className="w-full max-w-xl relative z-10">
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 sm:p-6">
           {/* Lang toggle */}
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-3">
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
               className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-blue-200 text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
@@ -140,12 +145,12 @@ export default function Home() {
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-amber-400 mb-2 tracking-wide">
+          <div className="text-center mb-5">
+          <h1 className="text-4xl font-bold text-amber-400 mb-1 tracking-wide">
             {l.title}
           </h1>
-          <p className="text-blue-200 text-lg">{l.subtitle}</p>
-          <div className="mt-3 flex items-center justify-center gap-2">
+          <p className="text-blue-200 text-base">{l.subtitle}</p>
+          <div className="mt-2 flex items-center justify-center gap-2">
             <span className="h-px w-12 bg-amber-400/50" />
             <span className="text-amber-400 text-xl">✦</span>
             <span className="h-px w-12 bg-amber-400/50" />
@@ -153,13 +158,13 @@ export default function Home() {
         </div>
 
         {/* Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/10">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
           {!result ? (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-blue-200 mb-2"
+                  className="block text-sm font-medium text-blue-200 mb-1.5"
                 >
                   {l.nameLabel}
                 </label>
@@ -170,14 +175,14 @@ export default function Home() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={l.namePlaceholder}
-                  className="input-dark w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
+                  className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-blue-200 mb-2"
+                  className="block text-sm font-medium text-blue-200 mb-1.5"
                 >
                   {l.emailLabel}
                 </label>
@@ -188,7 +193,7 @@ export default function Home() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={l.emailPlaceholder}
-                  className="input-dark w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
+                  className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
                 />
               </div>
 
@@ -201,7 +206,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold text-lg border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -232,9 +237,9 @@ export default function Home() {
               </button>
             </form>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="text-center">
-                <p className="text-amber-400 font-semibold text-lg mb-1">
+                <p className="text-amber-400 font-semibold mb-1">
                   {result.arabicName}
                 </p>
                 <p className="text-blue-200 text-sm">{l.ready}</p>
@@ -248,18 +253,16 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="rounded-xl overflow-hidden border border-white/10">
-                <img
-                  src={result.image}
-                  alt="Eid Card"
-                  className="w-full h-auto"
-                />
-              </div>
-
               <div className="flex gap-3">
                 <button
+                  onClick={() => setPreviewOpen(true)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                >
+                  {l.preview}
+                </button>
+                <button
                   onClick={handleDownload}
-                  className="flex-1 py-3 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors cursor-pointer"
                 >
                   {l.download}
                 </button>
@@ -268,8 +271,9 @@ export default function Home() {
                     setResult(null);
                     setName("");
                     setEmail("");
+                    setPreviewOpen(false);
                   }}
-                  className="flex-1 py-3 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
                 >
                   {l.another}
                 </button>
@@ -279,9 +283,31 @@ export default function Home() {
         </div>
 
           {/* Footer */}
-          <p className="text-center text-blue-300/40 text-xs mt-6">{l.footer}</p>
+          <p className="text-center text-blue-300/40 text-xs mt-4">{l.footer}</p>
         </div>
       </div>
+
+      {/* Fullscreen preview */}
+      {previewOpen && result?.image && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4"
+          onClick={() => setPreviewOpen(false)}
+        >
+          <button
+            onClick={() => setPreviewOpen(false)}
+            className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+            aria-label={l.close}
+          >
+            {l.close}
+          </button>
+          <img
+            src={result.image}
+            alt="Eid Card"
+            className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </main>
   );
 }
