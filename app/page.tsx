@@ -7,6 +7,7 @@ import { jsPDF } from "jspdf";
 type Lang = "ar" | "en";
 type LoadingStage = "idle" | "generating" | "translating" | "rendering";
 type CardDesign = "classic" | "design1" | "design2";
+const DESIGN_ORDER: CardDesign[] = ["classic", "design1", "design2"];
 const NAME_REGEX = /^[A-Za-z\u0600-\u06FF\s'-]+$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME_LENGTH = 2;
@@ -15,33 +16,33 @@ const MAX_NAME_LENGTH = 60;
 const t = {
   ar: {
     title: "عيد مبارك",
-    subtitle: "بطاقة تهنئة عيد الفطر",
+    subtitle: "تجربة مفاجأة عيد الفطر",
     nameLabel: "الاسم",
     namePlaceholder: "مثال: فيصل أسلم",
-    designLabel: "التصميم",
+    designLabel: "اختر التصميم",
     designClassic: "تصميم 1",
     design1: "تصميم 2",
     design2: "تصميم 3",
     emailLabel: "البريد الإلكتروني",
     emailPlaceholder: "مثال: name@example.com",
-    submit: "إنشاء البطاقة",
-    generating: "جاري تجهيز الطلب...",
-    translating: "جاري ترجمة الاسم...",
-    rendering: "جاري تصميم البطاقة...",
-    ready: "بطاقتك جاهزة!",
+    submit: "اكشف مفاجأة العيد",
+    generating: "جاري تجهيز مفاجأتك...",
+    translating: "جاري تنسيق اسمك على الهدية...",
+    rendering: "اللمسات الأخيرة على هديتك...",
+    ready: "مفاجأتك جاهزة!",
     appreciation: [
       "بمناسبة عيد الفطر السعيد، نتقدم إليكم بأحر التهاني.",
       "شكرًا لتفانيكم ومساهماتكم في IRC.",
       "نسأل الله أن يحمل لكم هذا العيد السعادة والنجاح والازدهار.",
     ],
-    downloadGallery: "تحميل للمعرض",
-    downloadPdf: "تحميل PDF",
-    preview: "معاينة",
+    downloadAll: "تحميل كل الهدايا",
+    downloadAllPdf: "تحميل PDF",
+    saveImage: "حفظ الصورة",
+    preview: "عرض المفاجأة",
     close: "إغلاق",
-    another: "إنشاء بطاقة أخرى",
-    copyLink: "نسخ الرابط",
-    copied: "تم نسخ الرابط",
-    share: "مشاركة",
+    prevDesign: "التصميم السابق",
+    nextDesign: "التصميم التالي",
+    another: "إنشاء مفاجأة أخرى",
     footer: "شركة الإستقدام الدولية • www.irc.sa",
     switchLang: "English",
     error: "حدث خطأ، يرجى المحاولة مرة أخرى.",
@@ -54,33 +55,33 @@ const t = {
   },
   en: {
     title: "Eid Mubarak",
-    subtitle: "Eid Al-Fitr Greeting Card",
+    subtitle: "Eid Al-Fitr Surprise Experience",
     nameLabel: "Your Name",
     namePlaceholder: "e.g. Faisal Aslam",
-    designLabel: "Design",
+    designLabel: "Choose design",
     designClassic: "Design 1",
     design1: "Design 2",
     design2: "Design 3",
     emailLabel: "Email",
     emailPlaceholder: "e.g. name@example.com",
-    submit: "Generate Eid Card",
-    generating: "Preparing your request...",
-    translating: "Translating your name...",
-    rendering: "Rendering your card...",
-    ready: "Your personalized Eid card is ready!",
+    submit: "Reveal Eid Surprise",
+    generating: "Preparing your surprise...",
+    translating: "Styling your name for the surprise...",
+    rendering: "Adding final touches to your gift...",
+    ready: "Your Eid surprise is ready!",
     appreciation: [
       "On the joyful occasion of Eid Al-Fitr, we extend our warmest wishes to you.",
       "Thank you for your dedication and contributions to IRC.",
       "May this Eid bring you happiness, success, and prosperity.",
     ],
-    downloadGallery: "Download Gallery",
-    downloadPdf: "Download PDF",
-    preview: "Preview",
+    downloadAll: "Download All Gifts",
+    downloadAllPdf: "Download PDF",
+    saveImage: "Save Image",
+    preview: "Preview Surprise",
     close: "Close",
-    another: "Make Another",
-    copyLink: "Copy Link",
-    copied: "Link copied",
-    share: "Share",
+    prevDesign: "Previous design",
+    nextDesign: "Next design",
+    another: "Create Another Surprise",
     footer: "International Recruitment Company • www.irc.sa",
     switchLang: "العربية",
     error: "Something went wrong. Please try again.",
@@ -101,13 +102,16 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [result, setResult] = useState<{
+    imageData?: string;
     imageUrl: string;
     arabicName: string;
   } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImageLoading, setPreviewImageLoading] = useState(false);
   const [error, setError] = useState("");
   const [website, setWebsite] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [designLoading, setDesignLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
 
   const l = t[lang];
   const isRtl = lang === "ar";
@@ -119,6 +123,12 @@ export default function Home() {
     nameLength <= MAX_NAME_LENGTH &&
     NAME_REGEX.test(normalizedName);
   const isEmailValid = EMAIL_REGEX.test(normalizedEmail);
+
+  function getAdjacentDesign(direction: 1 | -1): CardDesign {
+    const currentIndex = DESIGN_ORDER.indexOf(design);
+    const nextIndex = (currentIndex + direction + DESIGN_ORDER.length) % DESIGN_ORDER.length;
+    return DESIGN_ORDER[nextIndex];
+  }
 
   useEffect(() => {
     const saved = window.localStorage.getItem("eid-card-lang");
@@ -136,15 +146,44 @@ export default function Home() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setPreviewOpen(false);
+      } else if (event.key === "ArrowRight") {
+        void handleDesignChange(getAdjacentDesign(isRtl ? -1 : 1));
+      } else if (event.key === "ArrowLeft") {
+        void handleDesignChange(getAdjacentDesign(isRtl ? 1 : -1));
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [previewOpen]);
+  }, [previewOpen, design, isRtl]);
+
+  useEffect(() => {
+    if (!previewOpen || !result) return;
+    const src = result.imageData || result.imageUrl;
+    if (!src) {
+      setPreviewImageLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setPreviewImageLoading(true);
+    const image = new Image();
+    image.onload = () => {
+      if (isActive) setPreviewImageLoading(false);
+    };
+    image.onerror = () => {
+      if (!isActive) return;
+      setPreviewImageLoading(false);
+      setError(l.error);
+    };
+    image.src = src;
+
+    return () => {
+      isActive = false;
+    };
+  }, [previewOpen, result?.imageData, result?.imageUrl, l.error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setCopied(false);
     if (!normalizedName) {
       setError(l.nameShort);
       return;
@@ -181,7 +220,7 @@ export default function Home() {
       const res = await fetch("/api/generate-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, lang, website, design }),
+        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, lang, website, design: "classic" }),
       });
 
       const data = await res.json();
@@ -193,6 +232,7 @@ export default function Home() {
 
       setLoadingStage("rendering");
       await new Promise((resolve) => setTimeout(resolve, 120));
+      setDesign("classic");
       setResult(data);
     } catch {
       setError(l.error);
@@ -226,11 +266,26 @@ export default function Home() {
     return canvas.toDataURL(mimeType, quality);
   }
 
-  async function fetchCardBlob(): Promise<Blob> {
-    if (!result?.imageUrl) {
+  function getSafeBaseName(): string {
+    const safeName = normalizedName.replace(/[^A-Za-z0-9\u0600-\u06FF-]+/g, "-");
+    return `eid-card-${safeName || "name"}`;
+  }
+
+  async function fetchCardBlobFromResult(card: { imageData?: string; imageUrl: string }): Promise<Blob> {
+    if (!card) {
       throw new Error("Image unavailable");
     }
-    const imageRes = await fetch(result.imageUrl);
+    if (card.imageData?.startsWith("data:image")) {
+      const dataRes = await fetch(card.imageData);
+      if (!dataRes.ok) {
+        throw new Error("Image data fetch failed");
+      }
+      return dataRes.blob();
+    }
+    if (!card.imageUrl) {
+      throw new Error("Image URL unavailable");
+    }
+    const imageRes = await fetch(card.imageUrl);
     if (!imageRes.ok) {
       throw new Error("Image fetch failed");
     }
@@ -252,29 +307,83 @@ export default function Home() {
     });
   }
 
-  async function handleDownload(format: "gallery" | "pdf") {
-    if (!result?.imageUrl) return;
+  async function requestCardForDesign(nextDesign: CardDesign) {
+    const res = await fetch("/api/generate-card", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: normalizedName,
+        email: normalizedEmail,
+        lang,
+        website,
+        design: nextDesign,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || l.error);
+    }
+    return data as { imageData?: string; imageUrl: string; arabicName: string };
+  }
+
+  async function getCardForDesign(nextDesign: CardDesign) {
+    if (result && design === nextDesign) {
+      return result;
+    }
+    return requestCardForDesign(nextDesign);
+  }
+
+  async function handleSaveCurrentImage() {
+    if (!result) return;
     try {
-      const safeName = normalizedName.replace(/[^A-Za-z0-9\u0600-\u06FF-]+/g, "-");
-      const fileBase = `eid-card-${safeName || "name"}`;
-      const originalBlob = await fetchCardBlob();
-      const fallbackPngUrl = URL.createObjectURL(originalBlob);
-      let href = fallbackPngUrl;
-      let extension = "png";
+      const currentBlob = await fetchCardBlobFromResult(result);
+      const href = URL.createObjectURL(currentBlob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = `${getSafeBaseName()}-${design}.png`;
+      link.click();
+      URL.revokeObjectURL(href);
+    } catch {
+      setError(l.error);
+    }
+  }
 
-      if (format === "gallery") {
-        href = await convertImageFormat(originalBlob, "image/jpeg", 0.95);
-        extension = "jpg";
-      } else if (format === "pdf") {
-        const pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "pt",
-          format: "a4",
-        });
+  async function handleDownloadAllGallery() {
+    if (!result) return;
+    setDownloadLoading(true);
+    try {
+      const fileBase = getSafeBaseName();
+      for (const selected of DESIGN_ORDER) {
+        const card = await getCardForDesign(selected);
+        const originalBlob = await fetchCardBlobFromResult(card);
+        const href = await convertImageFormat(originalBlob, "image/jpeg", 0.95);
+        const link = document.createElement("a");
+        link.href = href;
+        link.download = `${fileBase}-${selected}.jpg`;
+        link.click();
+      }
+    } catch {
+      setError(l.error);
+    } finally {
+      setDownloadLoading(false);
+    }
+  }
 
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
+  async function handleDownloadAllPdf() {
+    if (!result) return;
+    setDownloadLoading(true);
+    try {
+      const fileBase = getSafeBaseName();
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+      });
 
+      for (let i = 0; i < DESIGN_ORDER.length; i += 1) {
+        const selected = DESIGN_ORDER[i];
+        const card = await getCardForDesign(selected);
+        const originalBlob = await fetchCardBlobFromResult(card);
         const imageDataUrl = await blobToDataUrl(originalBlob);
         const img = new Image();
         img.src = imageDataUrl;
@@ -283,61 +392,49 @@ export default function Home() {
           img.onerror = () => reject(new Error("PDF image load failed"));
         });
 
+        if (i > 0) {
+          pdf.addPage();
+        }
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
         const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
         const renderWidth = img.width * ratio;
         const renderHeight = img.height * ratio;
         const x = (pageWidth - renderWidth) / 2;
         const y = (pageHeight - renderHeight) / 2;
-
         pdf.addImage(imageDataUrl, "PNG", x, y, renderWidth, renderHeight);
-        pdf.save(`${fileBase}.pdf`);
-        URL.revokeObjectURL(fallbackPngUrl);
-        return;
       }
 
-      const link = document.createElement("a");
-      link.href = href;
-      link.download = `${fileBase}.${extension}`;
-      link.click();
-      URL.revokeObjectURL(fallbackPngUrl);
+      pdf.save(`${fileBase}-all.pdf`);
     } catch {
       setError(l.error);
+    } finally {
+      setDownloadLoading(false);
     }
   }
 
-  async function handleCopyLink() {
+  async function handleDesignChange(nextDesign: CardDesign) {
+    if (loading || designLoading || !result) return;
+    setDesignLoading(true);
+    if (previewOpen) {
+      setPreviewImageLoading(true);
+    }
+    setError("");
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      const data = await requestCardForDesign(nextDesign);
+      setDesign(nextDesign);
+      setResult(data);
     } catch {
       setError(l.error);
-    }
-  }
-
-  async function handleShare() {
-    if (!result?.imageUrl) return;
-    try {
-      const imageBlob = await fetchCardBlob();
-      const file = new File([imageBlob], "eid-card.png", { type: imageBlob.type || "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: "Eid Card",
-          text: "My personalized Eid greeting card",
-          files: [file],
-        });
-      } else {
-        await handleCopyLink();
-      }
-    } catch {
-      // User may dismiss share dialog; avoid showing hard error.
+    } finally {
+      setDesignLoading(false);
     }
   }
 
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
-      className="min-h-screen bg-linear-to-br from-[#061a30] via-[#0b2f52] to-[#1b5f93] flex items-center justify-center p-4 relative overflow-hidden"
+      className="min-h-screen bg-linear-to-br from-[#061a30] via-[#0b2f52] to-[#1b5f93] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden"
     >
       {/* Islamic / Eid background */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
@@ -366,39 +463,39 @@ export default function Home() {
         <span className="absolute bottom-1/3 left-20 text-blue-200/20 text-xl">✦</span>
       </div>
 
-      <div className="w-full max-w-xl relative z-10">
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 sm:p-6">
+      <div className="w-full max-w-2xl relative z-10">
+        <div className="bg-[#0a2138]/65 backdrop-blur-xl rounded-3xl border border-blue-200/20 p-5 sm:p-7 shadow-[0_20px_80px_rgba(2,15,35,0.55)]">
           {/* Lang toggle */}
           <div className="flex justify-end mb-3">
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-              className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-blue-200 text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+              className="px-4 py-1.5 rounded-full bg-white/8 border border-blue-200/25 text-blue-100 text-sm hover:bg-white/16 hover:border-blue-100/45 transition-colors cursor-pointer"
             >
               {l.switchLang}
             </button>
           </div>
 
           {/* Header */}
-          <div className="text-center mb-5">
-            <h1 className="text-4xl font-bold text-blue-100 mb-1 tracking-wide">
+          <div className="text-center mb-6 sm:mb-7">
+            <h1 className="text-3xl sm:text-4xl font-bold text-blue-50 mb-1 tracking-wide">
               {l.title}
             </h1>
-            <p className="text-blue-200 text-base">{l.subtitle}</p>
+            <p className="text-blue-200/90 text-sm sm:text-base">{l.subtitle}</p>
             <div className="mt-2 flex items-center justify-center gap-2">
-              <span className="h-px w-12 bg-blue-200/50" />
-              <span className="text-blue-100 text-xl">✦</span>
-              <span className="h-px w-12 bg-blue-200/50" />
+              <span className="h-px w-14 bg-blue-200/35" />
+              <span className="text-blue-100/95 text-xl">✦</span>
+              <span className="h-px w-14 bg-blue-200/35" />
             </div>
           </div>
 
           {/* Card */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+          <div className="bg-white/8 backdrop-blur-md rounded-2xl p-5 sm:p-6 border border-blue-100/15">
             {!result ? (
-              <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+              <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-blue-200 mb-1.5"
+                    className="block text-sm font-medium text-blue-100 mb-1.5"
                   >
                     {l.nameLabel}
                   </label>
@@ -411,9 +508,9 @@ export default function Home() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder={l.namePlaceholder}
                     maxLength={MAX_NAME_LENGTH}
-                    className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
+                    className="input-dark w-full px-4 py-3 rounded-xl bg-transparent border border-blue-100/25 text-white placeholder-white/40 hover:border-blue-100/45 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
                   />
-                  <p className="mt-1 text-xs text-blue-100/90">
+                  <p className="mt-1 text-xs text-blue-100/80">
                     {nameLength}/{MAX_NAME_LENGTH}
                   </p>
                   <div className="sr-only">
@@ -431,33 +528,8 @@ export default function Home() {
 
                 <div>
                   <label
-                    htmlFor="design"
-                    className="block text-sm font-medium text-blue-200 mb-1.5"
-                  >
-                    {l.designLabel}
-                  </label>
-                  <select
-                    id="design"
-                    value={design}
-                    onChange={(e) => setDesign(e.target.value as CardDesign)}
-                    className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
-                  >
-                    <option value="classic" className="text-black">
-                      {l.designClassic}
-                    </option>
-                    <option value="design1" className="text-black">
-                      {l.design1}
-                    </option>
-                    <option value="design2" className="text-black">
-                      {l.design2}
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-blue-200 mb-1.5"
+                    className="block text-sm font-medium text-blue-100 mb-1.5"
                   >
                     {l.emailLabel}
                   </label>
@@ -469,7 +541,7 @@ export default function Home() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={l.emailPlaceholder}
-                    className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
+                    className="input-dark w-full px-4 py-3 rounded-xl bg-transparent border border-blue-100/25 text-white placeholder-white/40 hover:border-blue-100/45 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
                   />
                 </div>
 
@@ -485,7 +557,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={loading || !isNameValid || !isEmailValid}
-                  className="w-full py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   aria-busy={loading}
                 >
                   {loading ? (
@@ -509,7 +581,7 @@ export default function Home() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                    {loadingStage === "rendering" ? l.rendering : l.generating}
+                      {loadingStage === "rendering" ? l.rendering : l.generating}
                     </span>
                   ) : (
                     l.submit
@@ -517,61 +589,55 @@ export default function Home() {
                 </button>
               </form>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="text-center">
-                  <p className="text-blue-100 font-semibold mb-1">
+                  <p className="text-blue-50 text-lg font-semibold mb-1">
                     {result.arabicName}
                   </p>
                   <p className="text-blue-200 text-sm">{l.ready}</p>
-                  <div className="mt-3 text-blue-100/90 text-sm leading-6 space-y-1">
+                  <div className="mt-3 text-blue-100/85 text-sm leading-6 space-y-1">
                     {l.appreciation.map((line) => (
                       <p key={line}>{line}</p>
                     ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
-                    onClick={() => setPreviewOpen(true)}
-                    className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setPreviewImageLoading(true);
+                      setPreviewOpen(true);
+                    }}
+                    className="py-3 rounded-xl bg-white/10 border border-blue-100/25 text-white font-semibold hover:bg-white/18 hover:border-blue-100/45 transition-colors cursor-pointer"
                   >
                     {l.preview}
                   </button>
                   <button
-                    onClick={() => handleDownload("gallery")}
-                    className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
+                    onClick={handleDownloadAllGallery}
+                    disabled={downloadLoading}
+                    className="py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {l.downloadGallery}
+                    {l.downloadAll}
                   </button>
                   <button
-                    onClick={() => handleDownload("pdf")}
-                    className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
+                    onClick={handleDownloadAllPdf}
+                    disabled={downloadLoading}
+                    className="py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {l.downloadPdf}
+                    {l.downloadAllPdf}
                   </button>
-                  <button
-                    onClick={handleShare}
-                    className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
-                  >
-                    {l.share}
-                  </button>
-                  <button
-                    onClick={handleCopyLink}
-                    className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
-                  >
-                    {copied ? l.copied : l.copyLink}
-                  </button>
+                </div>
                 <button
                   onClick={() => {
                     setResult(null);
                     setError("");
                     setPreviewOpen(false);
+                    setDesign("classic");
                   }}
-                  className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-white/6 border border-blue-100/25 text-blue-100 font-medium hover:bg-white/14 hover:border-blue-100/40 transition-colors cursor-pointer"
                 >
                   {l.another}
                 </button>
-                </div>
               </div>
             )}
           </div>
@@ -582,27 +648,108 @@ export default function Home() {
       </div>
 
       {/* Fullscreen preview */}
-      {previewOpen && result?.imageUrl && (
+      {previewOpen && (result?.imageData || result?.imageUrl) && (
         <div
           className="fixed inset-0 z-50 bg-[#061a30]/90 flex flex-col items-center justify-center p-4"
-          onClick={() => setPreviewOpen(false)}
+          onClick={() => {
+            setPreviewOpen(false);
+            setPreviewImageLoading(false);
+          }}
           role="dialog"
           aria-modal="true"
           aria-label={l.preview}
         >
           <button
-            onClick={() => setPreviewOpen(false)}
+            onClick={() => {
+              setPreviewOpen(false);
+              setPreviewImageLoading(false);
+            }}
             className="absolute top-4 right-4 p-2 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
             aria-label={l.close}
           >
             {l.close}
           </button>
-          <img
-            src={result.imageUrl}
-            alt="Eid Card"
-            className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleSaveCurrentImage();
+            }}
+            className="absolute top-4 left-4 sm:left-8 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer z-20"
+          >
+            {l.saveImage}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleDesignChange(getAdjacentDesign(isRtl ? 1 : -1));
+            }}
+            disabled={designLoading}
+            className="hidden sm:flex absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-11 h-11 items-center justify-center rounded-full bg-white/10 border border-white/25 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer text-xl z-20"
+            aria-label={l.prevDesign}
+          >
+            {isRtl ? "›" : "‹"}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleDesignChange(getAdjacentDesign(isRtl ? -1 : 1));
+            }}
+            disabled={designLoading}
+            className="hidden sm:flex absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-11 h-11 items-center justify-center rounded-full bg-white/10 border border-white/25 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer text-xl z-20"
+            aria-label={l.nextDesign}
+          >
+            {isRtl ? "‹" : "›"}
+          </button>
+          <div className="relative max-w-full max-h-[85vh] w-auto h-auto" onClick={(e) => e.stopPropagation()}>
+            {previewImageLoading && (
+              <div className="w-[min(88vw,420px)] h-[70vh] max-h-[85vh] rounded-lg bg-white/12 border border-white/10 animate-pulse" />
+            )}
+            <img
+              src={result.imageData || result.imageUrl}
+              alt="Eid Card"
+              className={`max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg transition-opacity duration-200 ${
+                previewImageLoading ? "opacity-0 absolute inset-0" : "opacity-100"
+              }`}
+              onLoad={() => setPreviewImageLoading(false)}
+              onError={() => {
+                setPreviewImageLoading(false);
+                setError(l.error);
+              }}
+            />
+          </div>
+          <div className="sm:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0a2138]/85 border border-white/20 backdrop-blur-md">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDesignChange(getAdjacentDesign(isRtl ? 1 : -1));
+              }}
+              disabled={designLoading}
+              className="w-10 h-10 rounded-lg bg-white/10 border border-white/25 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer text-lg"
+              aria-label={l.prevDesign}
+            >
+              {isRtl ? "›" : "‹"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleSaveCurrentImage();
+              }}
+              className="px-3 h-10 rounded-lg bg-white/10 border border-white/25 text-white text-xs font-semibold hover:bg-white/20 transition-colors cursor-pointer"
+            >
+              {l.saveImage}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDesignChange(getAdjacentDesign(isRtl ? -1 : 1));
+              }}
+              disabled={designLoading}
+              className="w-10 h-10 rounded-lg bg-white/10 border border-white/25 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer text-lg"
+              aria-label={l.nextDesign}
+            >
+              {isRtl ? "‹" : "›"}
+            </button>
+          </div>
         </div>
       )}
     </main>

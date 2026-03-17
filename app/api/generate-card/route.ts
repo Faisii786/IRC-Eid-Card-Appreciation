@@ -18,7 +18,11 @@ const TEXT_COLOR = "#1b4f94";
 const PRIMARY_FONT_FAMILY = "Aref Ruqaa";
 const FALLBACK_FONT_FAMILY = "Tajawal";
 const FONT_SIZE = 52;
-const POSITION_FROM_TOP = 0.73;
+const DESIGN_TEXT_CONFIG: Record<CardTemplateKey, { positionFromTop: number; fontSize: number; textColor: string }> = {
+  classic: { positionFromTop: 0.73, fontSize: 52, textColor: "#1b4f94" },
+  design1: { positionFromTop: 0.52, fontSize: 46, textColor: "#2c4f79" },
+  design2: { positionFromTop: 0.80, fontSize: 52, textColor: "#d7c39a" },
+};
 const MAX_NAME_LENGTH = 60;
 const MIN_NAME_LENGTH = 2;
 const TRANSLATION_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
@@ -254,14 +258,22 @@ async function generateCardImage(name: string, design: CardTemplateKey): Promise
   const renderCtx = canvas.getContext("2d");
   const w = canvas.width;
   const h = canvas.height;
+  const designConfig = DESIGN_TEXT_CONFIG[design];
+  let fontSize = designConfig.fontSize;
 
-  renderCtx.fillStyle = TEXT_COLOR;
-  renderCtx.font = `bold ${FONT_SIZE}px "${activeFontFamily}", "${FALLBACK_FONT_FAMILY}", "Arial", sans-serif`;
+  renderCtx.fillStyle = designConfig.textColor || TEXT_COLOR;
+  renderCtx.font = `bold ${fontSize}px "${activeFontFamily}", "${FALLBACK_FONT_FAMILY}", "Arial", sans-serif`;
   renderCtx.direction = "rtl";
   renderCtx.textAlign = "center";
 
+  const maxWidth = w * 0.55;
+  while (fontSize > 28 && renderCtx.measureText(name).width > maxWidth) {
+    fontSize -= 2;
+    renderCtx.font = `bold ${fontSize}px "${activeFontFamily}", "${FALLBACK_FONT_FAMILY}", "Arial", sans-serif`;
+  }
+
   const x = w / 2;
-  const y = h * POSITION_FROM_TOP;
+  const y = h * designConfig.positionFromTop;
 
   renderCtx.fillText(name, x, y);
 
@@ -315,6 +327,7 @@ export async function POST(req: NextRequest) {
 
     const arabicName = await getArabicName(normalizedName);
     const imageBuffer = await generateCardImage(arabicName, selectedDesign as CardTemplateKey);
+    const base64Image = imageBuffer.toString("base64");
     const imageId = crypto.randomUUID();
     saveGeneratedCard(imageId, imageBuffer);
     try {
@@ -352,6 +365,7 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         arabicName,
+        imageData: `data:image/png;base64,${base64Image}`,
         imageUrl: `/api/card/${imageId}`,
         requestId,
       },
