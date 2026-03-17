@@ -6,6 +6,7 @@ import { jsPDF } from "jspdf";
 
 type Lang = "ar" | "en";
 type LoadingStage = "idle" | "generating" | "translating" | "rendering";
+type CardDesign = "classic" | "design1" | "design2";
 const NAME_REGEX = /^[A-Za-z\u0600-\u06FF\s'-]+$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME_LENGTH = 2;
@@ -17,6 +18,10 @@ const t = {
     subtitle: "بطاقة تهنئة عيد الفطر",
     nameLabel: "الاسم",
     namePlaceholder: "مثال: فيصل أسلم",
+    designLabel: "التصميم",
+    designClassic: "تصميم 1",
+    design1: "تصميم 2",
+    design2: "تصميم 3",
     emailLabel: "البريد الإلكتروني",
     emailPlaceholder: "مثال: name@example.com",
     submit: "إنشاء البطاقة",
@@ -52,6 +57,10 @@ const t = {
     subtitle: "Eid Al-Fitr Greeting Card",
     nameLabel: "Your Name",
     namePlaceholder: "e.g. Faisal Aslam",
+    designLabel: "Design",
+    designClassic: "Design 1",
+    design1: "Design 2",
+    design2: "Design 3",
     emailLabel: "Email",
     emailPlaceholder: "e.g. name@example.com",
     submit: "Generate Eid Card",
@@ -88,6 +97,7 @@ export default function Home() {
   const [lang, setLang] = useState<Lang>("ar");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [design, setDesign] = useState<CardDesign>("classic");
   const [loading, setLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [result, setResult] = useState<{
@@ -171,7 +181,7 @@ export default function Home() {
       const res = await fetch("/api/generate-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, lang, website }),
+        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, lang, website, design }),
       });
 
       const data = await res.json();
@@ -417,6 +427,31 @@ export default function Home() {
                       onChange={(e) => setWebsite(e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="design"
+                    className="block text-sm font-medium text-blue-200 mb-1.5"
+                  >
+                    {l.designLabel}
+                  </label>
+                  <select
+                    id="design"
+                    value={design}
+                    onChange={(e) => setDesign(e.target.value as CardDesign)}
+                    className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
+                  >
+                    <option value="classic" className="text-black">
+                      {l.designClassic}
+                    </option>
+                    <option value="design1" className="text-black">
+                      {l.design1}
+                    </option>
+                    <option value="design2" className="text-black">
+                      {l.design2}
+                    </option>
+                  </select>
                 </div>
 
                 <div>

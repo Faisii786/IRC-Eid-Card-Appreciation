@@ -8,7 +8,12 @@ import { appendGenerationRecord } from "@/lib/googleSheets";
 
 const PRIMARY_FONT_PATH = path.join(process.cwd(), "public", "ArefRuqaa-Bold.ttf");
 const FALLBACK_FONT_PATH = path.join(process.cwd(), "public", "Tajawal-Bold.ttf");
-const IMAGE_PATH = path.join(process.cwd(), "public", "eid.jpeg");
+const CARD_TEMPLATES = {
+  classic: path.join(process.cwd(), "public", "eid.jpeg"),
+  design1: path.join(process.cwd(), "public", "eid1.jpeg"),
+  design2: path.join(process.cwd(), "public", "eid2.jpeg"),
+} as const;
+type CardTemplateKey = keyof typeof CARD_TEMPLATES;
 const TEXT_COLOR = "#1b4f94";
 const PRIMARY_FONT_FAMILY = "Aref Ruqaa";
 const FALLBACK_FONT_FAMILY = "Tajawal";
@@ -138,6 +143,7 @@ function getLocalizedError(code: string, lang: string): string {
     EMAIL_REQUIRED: { ar: "البريد الإلكتروني مطلوب", en: "Email is required" },
     EMAIL_INVALID: { ar: "صيغة البريد الإلكتروني غير صحيحة", en: "Email format is invalid" },
     BOT_DETECTED: { ar: "فشل التحقق من الطلب", en: "Request verification failed" },
+    DESIGN_INVALID: { ar: "التصميم المختار غير صالح", en: "Selected design is invalid" },
     RATE_LIMITED: { ar: "محاولات كثيرة، حاول مرة أخرى بعد دقيقة", en: "Too many requests, try again in a minute" },
     RENDER_FAILED: { ar: "تعذر إنشاء البطاقة، حاول مرة أخرى", en: "Failed to generate card, please try again" },
   };
@@ -231,12 +237,13 @@ async function getArabicName(name: string): Promise<string> {
   return name;
 }
 
-async function generateCardImage(name: string): Promise<Buffer> {
+async function generateCardImage(name: string, design: CardTemplateKey): Promise<Buffer> {
   ensureFontRegistered();
   let canvas = createCanvas(1600, 1000);
+  const templatePath = CARD_TEMPLATES[design];
 
-  if (fs.existsSync(IMAGE_PATH)) {
-    const img = await loadImage(IMAGE_PATH);
+  if (fs.existsSync(templatePath)) {
+    const img = await loadImage(templatePath);
     canvas = createCanvas(img.width, img.height);
     const imageCtx = canvas.getContext("2d");
     imageCtx.drawImage(img, 0, 0);
@@ -264,8 +271,9 @@ async function generateCardImage(name: string): Promise<Buffer> {
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
   try {
-    const { name, email, lang, website } = await req.json();
+    const { name, email, lang, website, design } = await req.json();
     const language = lang === "ar" ? "ar" : "en";
+    const selectedDesign = (design ?? "classic") as string;
 
     if (website) {
       return NextResponse.json(
@@ -298,9 +306,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!(selectedDesign in CARD_TEMPLATES)) {
+      return NextResponse.json(
+        { error: getLocalizedError("DESIGN_INVALID", language), code: "DESIGN_INVALID", requestId },
+        { status: 400 }
+      );
+    }
 
     const arabicName = await getArabicName(normalizedName);
-    const imageBuffer = await generateCardImage(arabicName);
+    const imageBuffer = await generateCardImage(arabicName, selectedDesign as CardTemplateKey);
     const imageId = crypto.randomUUID();
     saveGeneratedCard(imageId, imageBuffer);
     try {
