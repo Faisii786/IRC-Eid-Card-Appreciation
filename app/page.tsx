@@ -474,11 +474,7 @@ export default function Home() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      {loadingStage === "rendering"
-                        ? l.rendering
-                        : loadingStage === "translating"
-                          ? l.translating
-                          : l.generating}
+                    {loadingStage === "rendering" ? l.rendering : l.generating}
                     </span>
                   ) : (
                     l.submit
