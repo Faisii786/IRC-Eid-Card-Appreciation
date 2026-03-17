@@ -13,23 +13,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3000"),
-  title: "Eid Mubarak Card Generator | IRC",
+  metadataBase: new URL(
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000"
+  ),
+  title: "Eid Mubarak | بطاقة تهنئة عيد الفطر",
   description:
-    "Create personalized Eid Al-Fitr appreciation cards with Arabic name rendering, preview, download, and sharing options.",
+    "إنشاء بطاقات تهنئة عيد الفطر الشخصية بتنسيق عربي مع عرض المفاجأة، وتحميلها ومشاركتها.",
   keywords: [
-    "Eid card",
-    "Eid Mubarak",
-    "Arabic greeting card",
-    "IRC appreciation",
+    "بطاقة تهنئة عيد الفطر",
+    "عيد مبارك",
+    "بطاقة تهنئة عربية",
+    "IRC تهنئة",
     "Eid Al-Fitr card generator",
   ],
-  applicationName: "IRC Eid Card Appreciation",
+  applicationName: "بطاقة تهنئة عيد الفطر",
   authors: [{ name: "International Recruitment Company" }],
   openGraph: {
-    title: "Eid Mubarak Card Generator | IRC",
+    title: "عيد مبارك | بطاقة تهنئة عيد الفطر",
     description:
-      "Create personalized Eid Al-Fitr appreciation cards with Arabic name rendering and instant downloads.",
+      "إنشاء بطاقات تهنئة عيد الفطر الشخصية بتنسيق عربي مع عرض المفاجأة، وتحميلها ومشاركتها.",
     type: "website",
     locale: "en_US",
     images: [
@@ -37,15 +41,15 @@ export const metadata: Metadata = {
         url: "/og-image.svg",
         width: 1200,
         height: 630,
-        alt: "IRC Eid Card Generator",
+        alt: "بطاقة تهنئة عيد الفطر",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Eid Mubarak Card Generator | IRC",
+    title: "عيد مبارك | بطاقة تهنئة عيد الفطر",
     description:
-      "Generate personalized Eid appreciation cards in Arabic and share them instantly.",
+      "إنشاء بطاقات تهنئة عيد الفطر الشخصية بتنسيق عربي مع عرض المفاجأة، وتحميلها ومشاركتها.",
     images: ["/og-image.svg"],
   },
   icons: {
