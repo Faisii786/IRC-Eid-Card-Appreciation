@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
@@ -9,7 +10,7 @@ const t = {
     title: "عيد مبارك",
     subtitle: "بطاقة تهنئة عيد الفطر",
     nameLabel: "الاسم",
-    namePlaceholder: "مثال: عبدالله الشيخي",
+    namePlaceholder: "مثال: فيصل أسلم",
     emailLabel: "البريد الإلكتروني",
     emailPlaceholder: "بريدك@مثال.com",
     submit: "إنشاء البطاقة",
@@ -27,7 +28,7 @@ const t = {
     title: "Eid Mubarak",
     subtitle: "Eid Al-Fitr Greeting Card",
     nameLabel: "Your Name",
-    namePlaceholder: "e.g. Abdullah AlShaikhy",
+    namePlaceholder: "e.g. Faisal Aslam",
     emailLabel: "Your Email",
     emailPlaceholder: "your@email.com",
     submit: "Generate Eid Card",
@@ -97,21 +98,49 @@ export default function Home() {
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
-      className="min-h-screen bg-linear-to-br from-[#0f1b2d] via-[#1a2d4a] to-[#0d2137] flex items-center justify-center p-4"
+      className="min-h-screen bg-linear-to-br from-[#0f1b2d] via-[#1a2d4a] to-[#0d2137] flex items-center justify-center p-4 relative overflow-hidden"
     >
-      <div className="w-full max-w-lg">
-        {/* Lang toggle */}
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-blue-200 text-sm hover:bg-white/20 transition cursor-pointer"
-          >
-            {l.switchLang}
-          </button>
-        </div>
+      {/* Islamic / Eid background */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        {/* Subtle geometric pattern */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="islamic-pattern" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+              <path d="M40 0L44 20L40 40L36 20Z" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              <path d="M0 40L20 44L40 40L20 36Z" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              <circle cx="40" cy="40" r="2" fill="currentColor" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#islamic-pattern)" className="text-amber-400" />
+        </svg>
+        {/* Crescent & star — top left (Eid symbol) */}
+        <svg className="absolute top-12 left-8 w-24 h-24 text-amber-400/20" viewBox="0 0 64 64">
+          <path fill="currentColor" d="M32 4c-15.5 0-28 12.5-28 28s12.5 28 28 28 28-12.5 28-28S47.5 4 32 4zm0 8c11 0 20 9 20 20s-9 20-20 20-20-9-20-20 9-20 20-20z" />
+          <path fill="currentColor" d="M46 28l-2.5 1.2 1.2 2.5-2.5-1.2-1.2 2.5-1.2-2.5-2.5 1.2 1.2-2.5-2.5-1.2 2.5-1.2-1.2-2.5 2.5 1.2 1.2-2.5 1.2 2.5 2.5-1.2z" />
+        </svg>
+        {/* Crescent moon — bottom right */}
+        <svg className="absolute bottom-16 right-12 w-20 h-20 text-amber-400/15" viewBox="0 0 64 64" fillRule="evenodd">
+          <path fill="currentColor" d="M32 8a24 24 0 1 1 0 48 24 24 0 0 1 0-48zm10 8a16 16 0 1 1 0 32 16 16 0 0 1 0-32z" />
+        </svg>
+        {/* Small star accents */}
+        <span className="absolute top-1/4 right-16 text-amber-400/10 text-2xl">✦</span>
+        <span className="absolute bottom-1/3 left-20 text-amber-400/10 text-xl">✦</span>
+      </div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
+      <div className="w-full max-w-2xl relative z-10">
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8">
+          {/* Lang toggle */}
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+              className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-blue-200 text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+            >
+              {l.switchLang}
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-amber-400 mb-2 tracking-wide">
             {l.title}
           </h1>
@@ -124,7 +153,7 @@ export default function Home() {
         </div>
 
         {/* Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/10">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/10">
           {!result ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
@@ -141,7 +170,7 @@ export default function Home() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={l.namePlaceholder}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition"
+                  className="input-dark w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
                 />
               </div>
 
@@ -159,7 +188,7 @@ export default function Home() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={l.emailPlaceholder}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition"
+                  className="input-dark w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
                 />
               </div>
 
@@ -172,7 +201,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold text-lg hover:from-amber-600 hover:to-amber-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold text-lg border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -219,7 +248,7 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg">
+              <div className="rounded-xl overflow-hidden border border-white/10">
                 <img
                   src={result.image}
                   alt="Eid Card"
@@ -230,7 +259,7 @@ export default function Home() {
               <div className="flex gap-3">
                 <button
                   onClick={handleDownload}
-                  className="flex-1 py-3 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold hover:from-amber-600 hover:to-amber-700 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors cursor-pointer"
                 >
                   {l.download}
                 </button>
@@ -240,7 +269,7 @@ export default function Home() {
                     setName("");
                     setEmail("");
                   }}
-                  className="flex-1 py-3 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 transition-all cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
                 >
                   {l.another}
                 </button>
@@ -249,8 +278,9 @@ export default function Home() {
           )}
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-blue-300/40 text-xs mt-6">{l.footer}</p>
+          {/* Footer */}
+          <p className="text-center text-blue-300/40 text-xs mt-6">{l.footer}</p>
+        </div>
       </div>
     </main>
   );
