@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { jsPDF } from "jspdf";
 
 type Lang = "ar" | "en";
 
@@ -11,14 +12,16 @@ const t = {
     subtitle: "بطاقة تهنئة عيد الفطر",
     nameLabel: "الاسم",
     namePlaceholder: "مثال: فيصل أسلم",
-    emailLabel: "البريد الإلكتروني",
-    emailPlaceholder: "بريدك@مثال.com",
     submit: "إنشاء البطاقة",
     generating: "جاري إنشاء البطاقة...",
     ready: "بطاقتك جاهزة!",
-    emailSent: "تم إرسال البطاقة إلى بريدك الإلكتروني.",
-    emailNotConfigured: "البريد غير مُفعّل — يمكنك تحميل البطاقة أدناه.",
-    download: "تحميل البطاقة",
+    appreciation: [
+      "بمناسبة عيد الفطر السعيد، نتقدم إليكم بأحر التهاني.",
+      "شكرًا لتفانيكم ومساهماتكم في IRC.",
+      "نسأل الله أن يحمل لكم هذا العيد السعادة والنجاح والازدهار.",
+    ],
+    downloadGallery: "تحميل للمعرض",
+    downloadPdf: "تحميل PDF",
     preview: "معاينة",
     close: "إغلاق",
     another: "إنشاء بطاقة أخرى",
@@ -31,14 +34,16 @@ const t = {
     subtitle: "Eid Al-Fitr Greeting Card",
     nameLabel: "Your Name",
     namePlaceholder: "e.g. Faisal Aslam",
-    emailLabel: "Your Email",
-    emailPlaceholder: "your@email.com",
     submit: "Generate Eid Card",
     generating: "Generating your card...",
     ready: "Your personalized Eid card is ready!",
-    emailSent: "Card has been sent to your email.",
-    emailNotConfigured: "Email not configured — download your card below.",
-    download: "Download Card",
+    appreciation: [
+      "On the joyful occasion of Eid Al-Fitr, we extend our warmest wishes to you.",
+      "Thank you for your dedication and contributions to IRC.",
+      "May this Eid bring you happiness, success, and prosperity.",
+    ],
+    downloadGallery: "Download Gallery",
+    downloadPdf: "Download PDF",
     preview: "Preview",
     close: "Close",
     another: "Make Another",
@@ -51,12 +56,10 @@ const t = {
 export default function Home() {
   const [lang, setLang] = useState<Lang>("ar");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     image: string;
     arabicName: string;
-    emailSent: boolean;
   } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [error, setError] = useState("");
@@ -74,7 +77,7 @@ export default function Home() {
       const res = await fetch("/api/generate-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, lang }),
+        body: JSON.stringify({ name, lang }),
       });
 
       const data = await res.json();
@@ -92,18 +95,78 @@ export default function Home() {
     }
   }
 
-  function handleDownload() {
+  async function convertImageFormat(dataUrl: string, mimeType: string, quality?: number) {
+    const img = new Image();
+    img.src = dataUrl;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Image conversion failed"));
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Canvas context unavailable");
+    }
+
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL(mimeType, quality);
+  }
+
+  async function handleDownload(format: "gallery" | "pdf") {
     if (!result?.image) return;
-    const link = document.createElement("a");
-    link.href = result.image;
-    link.download = `eid-card-${name.replace(/\s+/g, "-")}.png`;
-    link.click();
+    try {
+      const fileBase = `eid-card-${name.trim().replace(/\s+/g, "-") || "name"}`;
+      let href = result.image;
+      let extension = "png";
+
+      if (format === "gallery") {
+        href = await convertImageFormat(result.image, "image/jpeg", 0.95);
+        extension = "jpg";
+      } else if (format === "pdf") {
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "pt",
+          format: "a4",
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const img = new Image();
+        img.src = result.image;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("PDF image load failed"));
+        });
+
+        const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+        const renderWidth = img.width * ratio;
+        const renderHeight = img.height * ratio;
+        const x = (pageWidth - renderWidth) / 2;
+        const y = (pageHeight - renderHeight) / 2;
+
+        pdf.addImage(result.image, "PNG", x, y, renderWidth, renderHeight);
+        pdf.save(`${fileBase}.pdf`);
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = `${fileBase}.${extension}`;
+      link.click();
+    } catch {
+      setError(l.error);
+    }
   }
 
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
-      className="min-h-screen bg-linear-to-br from-[#0f1b2d] via-[#1a2d4a] to-[#0d2137] flex items-center justify-center p-4 relative overflow-hidden"
+      className="min-h-screen bg-linear-to-br from-[#061a30] via-[#0b2f52] to-[#1b5f93] flex items-center justify-center p-4 relative overflow-hidden"
     >
       {/* Islamic / Eid background */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
@@ -116,20 +179,20 @@ export default function Home() {
               <circle cx="40" cy="40" r="2" fill="currentColor" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#islamic-pattern)" className="text-amber-400" />
+          <rect width="100%" height="100%" fill="url(#islamic-pattern)" className="text-blue-200" />
         </svg>
         {/* Crescent & star — top left (Eid symbol) */}
-        <svg className="absolute top-12 left-8 w-24 h-24 text-amber-400/20" viewBox="0 0 64 64">
+        <svg className="absolute top-12 left-8 w-24 h-24 text-blue-200/20" viewBox="0 0 64 64">
           <path fill="currentColor" d="M32 4c-15.5 0-28 12.5-28 28s12.5 28 28 28 28-12.5 28-28S47.5 4 32 4zm0 8c11 0 20 9 20 20s-9 20-20 20-20-9-20-20 9-20 20-20z" />
           <path fill="currentColor" d="M46 28l-2.5 1.2 1.2 2.5-2.5-1.2-1.2 2.5-1.2-2.5-2.5 1.2 1.2-2.5-2.5-1.2 2.5-1.2-1.2-2.5 2.5 1.2 1.2-2.5 1.2 2.5 2.5-1.2z" />
         </svg>
         {/* Crescent moon — bottom right */}
-        <svg className="absolute bottom-16 right-12 w-20 h-20 text-amber-400/15" viewBox="0 0 64 64" fillRule="evenodd">
+        <svg className="absolute bottom-16 right-12 w-20 h-20 text-blue-200/15" viewBox="0 0 64 64" fillRule="evenodd">
           <path fill="currentColor" d="M32 8a24 24 0 1 1 0 48 24 24 0 0 1 0-48zm10 8a16 16 0 1 1 0 32 16 16 0 0 1 0-32z" />
         </svg>
         {/* Small star accents */}
-        <span className="absolute top-1/4 right-16 text-amber-400/10 text-2xl">✦</span>
-        <span className="absolute bottom-1/3 left-20 text-amber-400/10 text-xl">✦</span>
+        <span className="absolute top-1/4 right-16 text-blue-200/20 text-2xl">✦</span>
+        <span className="absolute bottom-1/3 left-20 text-blue-200/20 text-xl">✦</span>
       </div>
 
       <div className="w-full max-w-xl relative z-10">
@@ -146,14 +209,14 @@ export default function Home() {
 
           {/* Header */}
           <div className="text-center mb-5">
-          <h1 className="text-4xl font-bold text-amber-400 mb-1 tracking-wide">
+          <h1 className="text-4xl font-bold text-blue-100 mb-1 tracking-wide">
             {l.title}
           </h1>
           <p className="text-blue-200 text-base">{l.subtitle}</p>
           <div className="mt-2 flex items-center justify-center gap-2">
-            <span className="h-px w-12 bg-amber-400/50" />
-            <span className="text-amber-400 text-xl">✦</span>
-            <span className="h-px w-12 bg-amber-400/50" />
+            <span className="h-px w-12 bg-blue-200/50" />
+            <span className="text-blue-100 text-xl">✦</span>
+            <span className="h-px w-12 bg-blue-200/50" />
           </div>
         </div>
 
@@ -175,30 +238,12 @@ export default function Home() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={l.namePlaceholder}
-                  className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-blue-200 mb-1.5"
-                >
-                  {l.emailLabel}
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={l.emailPlaceholder}
-                  className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-transparent transition-colors"
+                  className="input-dark w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-300/70 focus:border-transparent transition-colors"
                 />
               </div>
 
               {error && (
-                <div className="bg-red-500/20 border border-red-400/30 rounded-xl px-4 py-3 text-red-200 text-sm">
+                <div className="bg-blue-500/20 border border-blue-300/40 rounded-xl px-4 py-3 text-blue-100 text-sm">
                   {error}
                 </div>
               )}
@@ -206,7 +251,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -239,43 +284,35 @@ export default function Home() {
           ) : (
             <div className="space-y-4">
               <div className="text-center">
-                <p className="text-amber-400 font-semibold mb-1">
+                <p className="text-blue-100 font-semibold mb-1">
                   {result.arabicName}
                 </p>
                 <p className="text-blue-200 text-sm">{l.ready}</p>
-                {result.emailSent && (
-                  <p className="text-green-400 text-sm mt-1">{l.emailSent}</p>
-                )}
-                {!result.emailSent && (
-                  <p className="text-yellow-300/70 text-xs mt-1">
-                    {l.emailNotConfigured}
-                  </p>
-                )}
+                <div className="mt-3 text-blue-100/90 text-sm leading-6 space-y-1">
+                  {l.appreciation.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={() => setPreviewOpen(true)}
-                  className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  className="py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
                 >
                   {l.preview}
                 </button>
                 <button
-                  onClick={handleDownload}
-                  className="flex-1 py-2.5 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 text-white font-semibold border border-transparent hover:from-amber-600 hover:to-amber-700 hover:border-white/30 transition-colors cursor-pointer"
+                  onClick={() => handleDownload("gallery")}
+                  className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
                 >
-                  {l.download}
+                  {l.downloadGallery}
                 </button>
                 <button
-                  onClick={() => {
-                    setResult(null);
-                    setName("");
-                    setEmail("");
-                    setPreviewOpen(false);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+                  onClick={() => handleDownload("pdf")}
+                  className="py-2.5 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
                 >
-                  {l.another}
+                  {l.downloadPdf}
                 </button>
               </div>
             </div>
@@ -290,7 +327,7 @@ export default function Home() {
       {/* Fullscreen preview */}
       {previewOpen && result?.image && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[#061a30]/90 flex flex-col items-center justify-center p-4"
           onClick={() => setPreviewOpen(false)}
         >
           <button
