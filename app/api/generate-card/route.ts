@@ -18,10 +18,10 @@ const TEXT_COLOR = "#1b4f94";
 const PRIMARY_FONT_FAMILY = "Aref Ruqaa";
 const FALLBACK_FONT_FAMILY = "Tajawal";
 const FONT_SIZE = 52;
-const DESIGN_TEXT_CONFIG: Record<CardTemplateKey, { positionFromTop: number; positionFromLeft: number; fontSize: number; textColor: string }> = {
-  classic: { positionFromTop: 0.90, positionFromLeft: 0.12, fontSize: 52, textColor: "#1b4f94" },
-  design1: { positionFromTop: 0.80, positionFromLeft: 0.50, fontSize: 46, textColor: "#2c4f79" },
-  design2: { positionFromTop: 0.80, positionFromLeft: 0.50, fontSize: 52, textColor: "#d7c39a" },
+const DESIGN_TEXT_CONFIG: Record<CardTemplateKey, { positionFromTop: number; fontSize: number; textColor: string }> = {
+  classic: { positionFromTop: 0.73, fontSize: 52, textColor: "#1b4f94" },
+  design1: { positionFromTop: 0.80, fontSize: 46, textColor: "#2c4f79" },
+  design2: { positionFromTop: 0.80, fontSize: 52, textColor: "#d7c39a" },
 };
 const MAX_NAME_LENGTH = 60;
 const MIN_NAME_LENGTH = 2;
@@ -272,7 +272,7 @@ async function generateCardImage(name: string, design: CardTemplateKey): Promise
     renderCtx.font = `bold ${fontSize}px "${activeFontFamily}", "${FALLBACK_FONT_FAMILY}", "Arial", sans-serif`;
   }
 
-  const x = w * designConfig.positionFromLeft;
+  const x = w / 2;
   const y = h * designConfig.positionFromTop;
 
   renderCtx.fillText(name, x, y);
