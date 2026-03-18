@@ -31,9 +31,7 @@ const t = {
     rendering: "اللمسات الأخيرة على بطاقتك...",
     ready: "بطاقة جاهزة للتحميل",
     appreciation: [
-      "بمناسبة عيد الفطر السعيد، نتقدم إليكم بأحر التهاني.",
-      "شكرًا لتفانيكم ومساهماتكم في IRC.",
-      "نسأل الله أن يحمل لكم هذا العيد السعادة والنجاح والازدهار.",
+      "كل عام وأنتم بخير! عيد سعيد لفريقنا المتميز، أنتم أساس نجاحنا وداعم تطورنا المستمر.",
     ],
     downloadAll: "تحميل كل الهدايا",
     downloadAllPdf: "تحميل كـ PDF",
@@ -70,9 +68,7 @@ const t = {
     rendering: "Adding final touches to your card...",
     ready: "A card ready for download",
     appreciation: [
-      "On the joyful occasion of Eid Al-Fitr, we extend our warmest wishes to you.",
-      "Thank you for your dedication and contributions to IRC.",
-      "May this Eid bring you happiness, success, and prosperity.",
+      "Eid Mubarak! Happy Eid to our outstanding team — you are the foundation of our success and the driving force behind our continuous growth.",
     ],
     downloadAll: "Download All Cards",
     downloadAllPdf: "Download as PDF",
