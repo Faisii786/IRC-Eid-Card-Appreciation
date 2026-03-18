@@ -19,7 +19,7 @@ const PRIMARY_FONT_FAMILY = "Aref Ruqaa";
 const FALLBACK_FONT_FAMILY = "Tajawal";
 const FONT_SIZE = 52;
 const DESIGN_TEXT_CONFIG: Record<CardTemplateKey, { positionFromTop: number; positionFromLeft: number; fontSize: number; textColor: string }> = {
-  classic: { positionFromTop: 0.78, positionFromLeft: 0.18, fontSize: 52, textColor: "#1b4f94" },
+  classic: { positionFromTop: 0.90, positionFromLeft: 0.12, fontSize: 52, textColor: "#1b4f94" },
   design1: { positionFromTop: 0.80, positionFromLeft: 0.50, fontSize: 46, textColor: "#2c4f79" },
   design2: { positionFromTop: 0.80, positionFromLeft: 0.50, fontSize: 52, textColor: "#d7c39a" },
 };
