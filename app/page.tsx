@@ -595,24 +595,15 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      setPreviewImageLoading(true);
-                      setPreviewOpen(true);
-                    }}
-                    className="py-3 rounded-xl bg-white/10 border border-blue-100/25 text-white font-semibold hover:bg-white/18 hover:border-blue-100/45 transition-colors cursor-pointer"
-                  >
-                    {l.preview}
-                  </button>
-                  <button
-                    onClick={handleDownloadPdf}
-                    disabled={downloadLoading}
-                    className="py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {l.downloadAllPdf}
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setPreviewImageLoading(true);
+                    setPreviewOpen(true);
+                  }}
+                  className="w-full py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors cursor-pointer"
+                >
+                  {l.preview}
+                </button>
                 <button
                   onClick={() => {
                     setResult(null);
@@ -655,15 +646,27 @@ export default function Home() {
           >
             {l.close}
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              void handleSaveCurrentImage();
-            }}
-            className="absolute top-4 left-4 sm:left-8 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer z-20"
-          >
-            {l.saveImage}
-          </button>
+          <div className="hidden sm:flex absolute top-4 left-4 sm:left-8 gap-2 z-20">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleSaveCurrentImage();
+              }}
+              className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
+            >
+              {l.saveImage}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDownloadPdf();
+              }}
+              disabled={downloadLoading}
+              className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {l.downloadAllPdf}
+            </button>
+          </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -722,6 +725,16 @@ export default function Home() {
               className="px-3 h-10 rounded-lg bg-white/10 border border-white/25 text-white text-xs font-semibold hover:bg-white/20 transition-colors cursor-pointer"
             >
               {l.saveImage}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDownloadPdf();
+              }}
+              disabled={downloadLoading}
+              className="px-3 h-10 rounded-lg bg-white/10 border border-white/25 text-white text-xs font-semibold hover:bg-white/20 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {l.downloadAllPdf}
             </button>
             <button
               onClick={(e) => {
