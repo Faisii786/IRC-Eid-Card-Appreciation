@@ -36,7 +36,7 @@ const t = {
       "نسأل الله أن يحمل لكم هذا العيد السعادة والنجاح والازدهار.",
     ],
     downloadAll: "تحميل كل الهدايا",
-    downloadAllPdf: "تحميل PDF",
+    downloadAllPdf: "تحميل كـ PDF",
     saveImage: "حفظ الصورة",
     preview: "عرض بطاقة التهنئة",
     close: "إغلاق",
@@ -75,7 +75,7 @@ const t = {
       "May this Eid bring you happiness, success, and prosperity.",
     ],
     downloadAll: "Download All Cards",
-    downloadAllPdf: "Download PDF",
+    downloadAllPdf: "Download as PDF",
     saveImage: "Save Image",
     preview: "View Greeting Card",
     close: "Close",
@@ -369,43 +369,36 @@ export default function Home() {
     }
   }
 
-  async function handleDownloadAllPdf() {
+  async function handleDownloadPdf() {
     if (!result) return;
     setDownloadLoading(true);
     try {
       const fileBase = getSafeBaseName();
+      const currentBlob = await fetchCardBlobFromResult(result);
+      const imageDataUrl = await blobToDataUrl(currentBlob);
+      const img = new Image();
+      img.src = imageDataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("PDF image load failed"));
+      });
+
       const pdf = new jsPDF({
-        orientation: "portrait",
+        orientation: img.width > img.height ? "landscape" : "portrait",
         unit: "pt",
         format: "a4",
       });
 
-      for (let i = 0; i < DESIGN_ORDER.length; i += 1) {
-        const selected = DESIGN_ORDER[i];
-        const card = await getCardForDesign(selected);
-        const originalBlob = await fetchCardBlobFromResult(card);
-        const imageDataUrl = await blobToDataUrl(originalBlob);
-        const img = new Image();
-        img.src = imageDataUrl;
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error("PDF image load failed"));
-        });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+      const renderWidth = img.width * ratio;
+      const renderHeight = img.height * ratio;
+      const x = (pageWidth - renderWidth) / 2;
+      const y = (pageHeight - renderHeight) / 2;
+      pdf.addImage(imageDataUrl, "PNG", x, y, renderWidth, renderHeight);
 
-        if (i > 0) {
-          pdf.addPage();
-        }
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
-        const renderWidth = img.width * ratio;
-        const renderHeight = img.height * ratio;
-        const x = (pageWidth - renderWidth) / 2;
-        const y = (pageHeight - renderHeight) / 2;
-        pdf.addImage(imageDataUrl, "PNG", x, y, renderWidth, renderHeight);
-      }
-
-      pdf.save(`${fileBase}-all.pdf`);
+      pdf.save(`${fileBase}-${design}.pdf`);
     } catch {
       setError(l.error);
     } finally {
@@ -613,7 +606,7 @@ export default function Home() {
                     {l.preview}
                   </button>
                   <button
-                    onClick={handleDownloadAllPdf}
+                    onClick={handleDownloadPdf}
                     disabled={downloadLoading}
                     className="py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
