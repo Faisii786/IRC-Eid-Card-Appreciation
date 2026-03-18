@@ -15,8 +15,8 @@ const MAX_NAME_LENGTH = 60;
 
 const t = {
   ar: {
-    title: "عيد مبارك",
-    subtitle: "تجربة مفاجأة عيد الفطر",
+    title: "عيد الفطر المبارك",
+    subtitle: "صمّم تهنئة العيد باسمك. 🌙",
     nameLabel: "الاسم",
     namePlaceholder: "مثال: فيصل أسلم",
     designLabel: "اختر التصميم",
@@ -25,11 +25,11 @@ const t = {
     design2: "تصميم 3",
     emailLabel: "البريد الإلكتروني",
     emailPlaceholder: "مثال: name@example.com",
-    submit: "اكشف مفاجأة العيد",
-    generating: "جاري تجهيز مفاجأتك...",
-    translating: "جاري تنسيق اسمك على الهدية...",
-    rendering: "اللمسات الأخيرة على هديتك...",
-    ready: "مفاجأتك جاهزة!",
+    submit: "صمّم بطاقتك",
+    generating: "جاري تجهيز بطاقتك...",
+    translating: "جاري تنسيق اسمك على البطاقة...",
+    rendering: "اللمسات الأخيرة على بطاقتك...",
+    ready: "بطاقة جاهزة للتحميل",
     appreciation: [
       "بمناسبة عيد الفطر السعيد، نتقدم إليكم بأحر التهاني.",
       "شكرًا لتفانيكم ومساهماتكم في IRC.",
@@ -38,11 +38,11 @@ const t = {
     downloadAll: "تحميل كل الهدايا",
     downloadAllPdf: "تحميل PDF",
     saveImage: "حفظ الصورة",
-    preview: "عرض المفاجأة",
+    preview: "عرض بطاقة التهنئة",
     close: "إغلاق",
     prevDesign: "التصميم السابق",
     nextDesign: "التصميم التالي",
-    another: "إنشاء مفاجأة أخرى",
+    another: "انشاء بطاقة اخرى",
     footer: "شركة الإستقدام الدولية • www.irc.sa",
     switchLang: "English",
     error: "حدث خطأ، يرجى المحاولة مرة أخرى.",
@@ -54,8 +54,8 @@ const t = {
     botField: "اترك هذا الحقل فارغًا",
   },
   en: {
-    title: "Eid Mubarak",
-    subtitle: "Eid Al-Fitr Surprise Experience",
+    title: "Eid Al-Fitr Mubarak",
+    subtitle: "Design your Eid greeting card. 🌙",
     nameLabel: "Your Name",
     namePlaceholder: "e.g. Faisal Aslam",
     designLabel: "Choose design",
@@ -64,24 +64,24 @@ const t = {
     design2: "Design 3",
     emailLabel: "Email",
     emailPlaceholder: "e.g. name@example.com",
-    submit: "Reveal Eid Surprise",
-    generating: "Preparing your surprise...",
-    translating: "Styling your name for the surprise...",
-    rendering: "Adding final touches to your gift...",
-    ready: "Your Eid surprise is ready!",
+    submit: "Design Your Card",
+    generating: "Preparing your card...",
+    translating: "Styling your name on the card...",
+    rendering: "Adding final touches to your card...",
+    ready: "A card ready for download",
     appreciation: [
       "On the joyful occasion of Eid Al-Fitr, we extend our warmest wishes to you.",
       "Thank you for your dedication and contributions to IRC.",
       "May this Eid bring you happiness, success, and prosperity.",
     ],
-    downloadAll: "Download All Gifts",
+    downloadAll: "Download All Cards",
     downloadAllPdf: "Download PDF",
     saveImage: "Save Image",
-    preview: "Preview Surprise",
+    preview: "View Greeting Card",
     close: "Close",
     prevDesign: "Previous design",
     nextDesign: "Next design",
-    another: "Create Another Surprise",
+    another: "Create Another Card",
     footer: "International Recruitment Company • www.irc.sa",
     switchLang: "العربية",
     error: "Something went wrong. Please try again.",
@@ -602,7 +602,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     onClick={() => {
                       setPreviewImageLoading(true);
@@ -611,13 +611,6 @@ export default function Home() {
                     className="py-3 rounded-xl bg-white/10 border border-blue-100/25 text-white font-semibold hover:bg-white/18 hover:border-blue-100/45 transition-colors cursor-pointer"
                   >
                     {l.preview}
-                  </button>
-                  <button
-                    onClick={handleDownloadAllGallery}
-                    disabled={downloadLoading}
-                    className="py-3 rounded-xl bg-linear-to-r from-[#124a79] to-[#1b5f93] text-white font-semibold border border-transparent hover:from-[#0d3b62] hover:to-[#154f7b] hover:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {l.downloadAll}
                   </button>
                   <button
                     onClick={handleDownloadAllPdf}
@@ -707,9 +700,8 @@ export default function Home() {
             <img
               src={result.imageData || result.imageUrl}
               alt="Eid Card"
-              className={`max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg transition-opacity duration-200 ${
-                previewImageLoading ? "opacity-0 absolute inset-0" : "opacity-100"
-              }`}
+              className={`max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg transition-opacity duration-200 ${previewImageLoading ? "opacity-0 absolute inset-0" : "opacity-100"
+                }`}
               onLoad={() => setPreviewImageLoading(false)}
               onError={() => {
                 setPreviewImageLoading(false);
